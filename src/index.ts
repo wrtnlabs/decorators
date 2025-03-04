@@ -1,4 +1,7 @@
-import * as decorators from "./module";
+import "@wrtnlabs/schema";
 
-export * from "./module";
-export default decorators;
+export * from "./ExperimentalRoute";
+export * from "./Placeholder";
+export * from "./RouteIcon";
+export * from "./SecretKey";
+export * from "./SelectBenchmark";

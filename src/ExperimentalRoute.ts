@@ -1,4 +1,5 @@
 import { SwaggerCustomizer } from "@nestia/core";
+import "@wrtnlabs/schema";
 
 /**
  * Experimental API marking.
@@ -21,7 +22,7 @@ export function ExperimentalRoute(): MethodDecorator {
     descriptor: PropertyDescriptor,
   ) {
     return SwaggerCustomizer((props) => {
-      (props.route as any)["x-wrtn-experimental"] = true;
+      props.route["x-wrtn-experimental"] = true;
     })(target, key!, descriptor);
   };
 }

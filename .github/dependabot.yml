@@ -18,7 +18,11 @@ updates:
       NestJS:
         patterns:
           - "@nestjs/*"
+      Ecosystem:
+        patterns:
+          - "@samchon/openapi"
           - "@nestia/*"
+          - "@wrtnlabs/*"
           - "nestia"
           - "typia"
       Builder:

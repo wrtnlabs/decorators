@@ -1,130 +1,60 @@
-import { TestValidator } from "@nestia/e2e";
-import cp from "child_process";
-import fs from "fs";
-import typia, { tags } from "typia";
+import { DynamicExecutor } from "@nestia/e2e";
+import { NestiaSwaggerComposer } from "@nestia/sdk";
+import { INestApplication } from "@nestjs/common";
+import { NestFactory } from "@nestjs/core";
+import { OpenApi } from "@samchon/openapi";
+import "@wrtnlabs/schema";
+import chalk from "chalk";
 
-import jmespath from "jmespath";
-import { IGoogleCalendar } from "./IGoogleCalendar";
+import { TestGlobal } from "./TestGlobal";
+import { BbsArticleModule } from "./controllers/BbsArticleModule";
 
 const main = async () => {
-  //----
-  // READ SWAGGER FILE
-  //----
-  cp.execSync("npx nestia swagger");
-  const swagger = JSON.parse(
-    fs.readFileSync(`${__dirname}/swagger.json`, "utf8"),
+  // MOUNT SWAGGER DOCUMENT
+  const app: INestApplication = await NestFactory.create(BbsArticleModule, {
+    logger: false,
+  });
+  const document: OpenApi.IDocument = OpenApi.convert(
+    await NestiaSwaggerComposer.document(app, {}),
   );
 
-  //----
-  // ICON
-  //----
-  TestValidator.equals("x-wrtn-icon")(
-    swagger.paths["/connector/google-calendar/{calendarId}/get-events"].get[
-      "x-wrtn-icon"
-    ],
-  )("https://typia.io/favicon/android-chrome-192x192.png");
-
-  //----
-  // PLACEHOLDER
-  //----
-  TestValidator.equals("x-wrtn-placeholder")(
-    swagger.paths["/connector/google-calendar/{calendarId}/get-events"].get
-      .parameters[0].schema["x-wrtn-placeholder"],
-  )("Select a calendar to read events from.");
-
-  // SELECTOR
-  TestValidator.equals("x-wrtn-selector")(
-    swagger.paths["/connector/google-calendar/{calendarId}/get-events"].get
-      .parameters[0]["x-wrtn-selector"],
-  )({
-    path: "/connector/google-calendar",
-    method: "get",
+  // DO TEST
+  const include: string[] = TestGlobal.getArguments("include");
+  const exclude: string[] = TestGlobal.getArguments("exclude");
+  const report: DynamicExecutor.IReport = await DynamicExecutor.validate({
+    prefix: "test_",
+    location: __dirname + "/features",
+    extension: __filename.substring(__filename.length - 2),
+    parameters: () => [document],
+    onComplete: (exec) => {
+      const trace = (str: string) =>
+        console.log(`  - ${chalk.green(exec.name)}: ${str}`);
+      if (exec.value === false) trace(chalk.gray("Pass"));
+      else if (exec.error === null) {
+        const elapsed: number =
+          new Date(exec.completed_at).getTime() -
+          new Date(exec.started_at).getTime();
+        trace(`${chalk.yellow(elapsed.toLocaleString())} ms`);
+      } else trace(chalk.red(exec.error.name));
+    },
+    filter: (name) =>
+      (include.length ? include.some((str) => name.includes(str)) : true) &&
+      (exclude.length ? exclude.every((str) => !name.includes(str)) : true),
   });
 
-  //----
-  // SECRET-KEYS
-  //----
-  TestValidator.equals("check-exist-header")(
-    swagger.paths["/connector/google-calendar/{calendarId}/get-events"].get
-      .parameters[1].in,
-  )("header");
-  TestValidator.equals("check-exist-header")(
-    swagger.paths["/connector/google-calendar/{calendarId}/get-events"].get
-      .parameters[1].schema["x-wrtn-secret-key"],
-  )("Google");
-  TestValidator.equals("check-header-type")(
-    swagger.components.schemas.IAuthHeaders.properties.secretKey[
-      "x-wrtn-secret-key"
-    ],
-  )("Google");
-
-  //----
-  // STANDALONE
-  //----
-  TestValidator.equals("x-wrtn-standalone")(
-    swagger.paths["/connector/google-calendar"].get["x-wrtn-standalone"],
-  )(true);
-
-  //----
-  // PRE-REQUISITES
-  //----
-  const calendars = typia.random<
-    IGoogleCalendar[] & tags.MinItems<3> & tags.MaxItems<3>
-  >();
-
-  // @Prerequisite value
-  TestValidator.equals("jmesPath")(calendars[0].url)(
-    jmespath.search(
-      calendars,
-      `${
-        swagger.paths["/connector/google-calendar/prerequisite/{url1}/{url2}"][
-          "post"
-        ].parameters[0].schema["x-wrtn-prerequisite"].jmesPath
-      }`,
-    )[0].value,
-  );
-
-  // @Prerequisite label
-  TestValidator.equals("jmesPath")(calendars[0].title)(
-    jmespath.search(
-      calendars,
-      `${
-        swagger.paths["/connector/google-calendar/prerequisite/{url1}/{url2}"][
-          "post"
-        ].parameters[0].schema["x-wrtn-prerequisite"].jmesPath
-      }`,
-    )[0].label,
-  );
-
-  // Prerequisite<Props> value
-  TestValidator.equals("jmesPath")(calendars[0].url)(
-    jmespath.search(
-      calendars,
-      `${
-        swagger.components.schemas.IUrlRequestBody.properties.url[
-          "x-wrtn-prerequisite"
-        ].jmesPath
-      }`,
-    )[0].value,
-  );
-
-  // Prerequisite<Props> label
-  TestValidator.equals("jmesPath")(calendars[0].title)(
-    jmespath.search(
-      calendars,
-      `${
-        swagger.components.schemas.IUrlRequestBody.properties.url[
-          "x-wrtn-prerequisite"
-        ].jmesPath
-      }`,
-    )[0].label,
-  );
-
-  // /**
-  //  * test for JMESPath
-  //  */
-  import("./JMESPath").catch((exp) => {
-    console.error(exp);
-  });
+  // REPORT EXCEPTIONS
+  const exceptions: Error[] = report.executions
+    .filter((exec) => exec.error !== null)
+    .map((exec) => exec.error!);
+  if (exceptions.length === 0) {
+    console.log("Success");
+    console.log("Elapsed time", report.time.toLocaleString(), `ms`);
+  } else {
+    for (const exp of exceptions) console.log(exp);
+    console.log("Failed");
+    console.log("Elapsed time", report.time.toLocaleString(), `ms`);
+  }
+  await app.close();
+  if (exceptions.length) process.exit(-1);
 };
 main();
