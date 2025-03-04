@@ -1,18 +1,12 @@
 module.exports = {
-  overrides: [
-    {
-      files: ["*.mts", "*.cts", "*.ts"],
-      options: {
-        parser: "typescript",
-      },
-    },
-  ],
+  parser: "typescript",
   printWidth: 80,
   semi: true,
   tabWidth: 2,
   trailingComma: "all",
-  importOrder: ["<THIRD_PARTY_MODULES>", "^@wrtn/connector-api(.*)$", "^[./]"],
+  plugins: [require.resolve("@trivago/prettier-plugin-sort-imports")],
+  importOrder: ["<THIRD_PARTY_MODULES>", "^[./]"],
   importOrderSeparation: true,
   importOrderSortSpecifiers: true,
-  importOrderParserPlugins: ["decorators-legacy", "typescript"],
+  importOrderParserPlugins: ["decorators-legacy", "typescript", "jsx"],
 };

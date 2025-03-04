@@ -1,3 +1,4 @@
+import "@wrtnlabs/schema";
 import { tags } from "typia";
 
 /**

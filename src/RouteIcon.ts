@@ -1,4 +1,5 @@
 import { SwaggerCustomizer } from "@nestia/core";
+import "@wrtnlabs/schema";
 import typia, { tags } from "typia";
 
 export function RouteIcon(url: string & tags.Format<"uri">): MethodDecorator {
@@ -9,7 +10,7 @@ export function RouteIcon(url: string & tags.Format<"uri">): MethodDecorator {
     descriptor: PropertyDescriptor,
   ) {
     return SwaggerCustomizer((props) => {
-      (props.route as any)["x-wrtn-icon"] = url;
+      props.route["x-wrtn-icon"] = url;
     })(target, key, descriptor);
   };
 }

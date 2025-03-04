@@ -1,4 +1,5 @@
 import { SwaggerCustomizer } from "@nestia/core";
+import "@wrtnlabs/schema";
 
 export function SelectBenchmark(keyword: string | string[]): MethodDecorator {
   return function (
@@ -7,8 +8,8 @@ export function SelectBenchmark(keyword: string | string[]): MethodDecorator {
     descriptor: PropertyDescriptor,
   ) {
     return SwaggerCustomizer((props) => {
-      (props.route as any)["x-wrtn-function-select-benchmarks"] ??= [];
-      (props.route as any)["x-wrtn-function-select-benchmarks"].push(
+      props.route["x-wrtn-function-select-benchmarks"] ??= [];
+      props.route["x-wrtn-function-select-benchmarks"].push(
         ...(Array.isArray(keyword) ? keyword : [keyword]),
       );
     })(target, key, descriptor);
